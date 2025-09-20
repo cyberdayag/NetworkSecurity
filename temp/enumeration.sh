@@ -45,25 +45,29 @@ ENUMERATION_MODE_SELECTOR() {
             echo -e "\n\e[31m============================================================"
             echo -e "   ⚠️  ATTENTION: Advanced Enumeration Requirements  ⚠️"
             echo -e "============================================================"
-            echo -e " Username AND Password List are REQUIRED."
-            echo -e " - If no custom list is provided, rockyou.txt will be used."
-            echo -e " - If username is missing, the script will return to menu."
+            echo -e " Userlist AND Password List are REQUIRED."
+            echo -e " - If no custom password list is provided, rockyou.txt will be used."
+            echo -e " - If no custom userlist is provided, default userlist will be used."
             echo -e "============================================================\e[0m\n"
 
-            # Prompt the user to enter a valid AD username
-            read -r -p $'\e[34m[?]\e[0m Enter valid username: ' username
+            
+            # Prompt the user to enter the full path to a  userlist
+            read -r -p $'\e[34m[?]\e[0m Enter full path to userlist or press enter for default userlist: ' custom_userlist
 
-            # Check if the username is empty
-            if [[ -z "$username" ]]; then
-                 # Inform the user that no username was entered and return to the enumeration mode selection
-                echo -e "\e[91m[!] No username entered. Returning to enumeration mode selection...\e[0m"
-                ENUMERATION_MODE_SELECTOR
-                return
+            # If no custom userlist is provided, use the default userlist from GoogleDrive
+            if [[ -z "$custom_userlist" ]]; then
+                data="$working_dir/world_lists"
+                mkdir -p "$data"
+                wget --no-check-certificate -O "$data/users.txt" "https://drive.google.com/uc?export=download&id=1FK4Ei5ovLw8g8gPOryoqdXBOAf1TEMCq" >/dev/null 2>&1
+                userlist="$data/users.txt"
+            else
+                # Otherwise, use the path provided by the user
+                userlist="$custom_userlist"
             fi
             
 
             # Prompt the user to enter the full path to a password list
-            read -r -p $'\e[34m[?]\e[0m Enter ful path to passwordlist: ' custom_passwdlist
+            read -r -p $'\e[34m[?]\e[0m Enter full path to passwordlist or press enter for default passwordlist: ' custom_passwdlist
 
             # If no custom password list is provided, use the default rockyou.txt
             if [[ -z "$custom_passwdlist" ]]; then
@@ -179,9 +183,3 @@ INTERMEDIATE_ENUMERATION() {
 }
 
 
-
-INTERMEDIATE_ENUMERATION() {
-
-
-
-}

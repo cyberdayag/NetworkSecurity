@@ -1,0 +1,42 @@
+
+ BASIC ENUMERATION RESULT FOR 192.168.29.2
+
+PORT      STATE  SERVICE          VERSION
+88/tcp    closed kerberos-sec
+135/tcp   closed msrpc
+139/tcp   closed netbios-ssn
+389/tcp   closed ldap
+445/tcp   closed microsoft-ds
+464/tcp   closed kpasswd5
+593/tcp   closed http-rpc-epmap
+636/tcp   closed ldapssl
+3268/tcp  closed globalcatLDAP
+3269/tcp  closed globalcatLDAPssl
+5985/tcp  closed wsman
+9389/tcp  closed adws
+49666/tcp closed unknown
+49668/tcp closed unknown
+49670/tcp closed unknown
+49671/tcp closed unknown
+49685/tcp closed unknown
+49706/tcp closed unknown
+
+[+] DHCP SERVER DETECTED 192.168.29.254
+
+ INTERMEDIATE ENUMERATION RESULT FOR 192.168.29.2
+
+
+PORT     STATE  SERVICE       VERSION
+21/tcp   closed ftp
+22/tcp   closed ssh
+139/tcp  closed netbios-ssn
+389/tcp  closed ldap
+445/tcp  closed microsoft-ds
+636/tcp  closed ldapssl
+3389/tcp closed ms-wbt-server
+5985/tcp closed wsman
+5986/tcp closed wsmans
+MAC Address: 00:50:56:E7:8D:3F (VMware)
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 0.42 seconds

@@ -3,21 +3,27 @@
 
 #+-----------------------------------------------------------------------------------------+
 #|                                                                                         |
-#|                     Bash Script for Penetration Testing                                 |
+#|                         NETWORK SECURITY | PROJECT: DOMAIN MAPPER                       |
 #|                                                                                         |
-#|  ▸ Checks for required utilities and internet connection                                |
-#|  ▸ Automatically installs and starts 'nipe' to route traffic through the TOR network    |
-#|  ▸ Masks your MAC address and requests a new IP address                                 |
-#|  ▸ Gets user input: target network, output directory, and scan mode (Basic/Full)        |
-#|  ▸ Basic mode: scans TCP/UDP, detects service versions, and checks weak passwords       |
-#|  ▸ Full mode: includes NSE scripts and vulnerability mapping with Searchsploit          |
-#|  ▸ Tests weak credentials for SSH, RDP, FTP, and TELNET                                 |
-#|  ▸ Logs results, allows searching inside them, and saves everything to a ZIP archive    |
-#|  ▸ Metasploitable2 was used as a testbed for development and debugging                  |
+#|  ▸ This Bash script automates network and domain reconnaissance for penetration testing.|
+#|  ▸ It helps security professionals and students quickly gather information about a      |
+#|    target network, services, and Active Directory environment.                          |
+#|  ▸ Designed for safe testing on lab environments, it demonstrates scanning, enumeration,|
+#|    and exploitation techniques without impacting production systems.                    |
+#|                                                                                         |
+#|  Features:                                                                              |
+#|  ▸ Prompts the user for target network, domain, AD credentials, and password list       |
+#|  ▸ Supports selectable operation levels for Scanning, Enumeration, and Exploitation     |
+#|  ▸ Scanning: Basic, Intermediate, and Advanced modes, including TCP/UDP and full ports  |
+#|  ▸ Enumeration: detects services, Domain Controller, DHCP, shared folders, and AD info  |
+#|  ▸ Exploitation: vulnerability checks, password spraying, and Kerberos ticket testing   |
+#|  ▸ Logs results and saves output as PDF files                                           |
+#|  ▸ Script was tested on a lab (training) Domain Controller                              |
 #|                                                                                         |
 #|                              Requires root privileges!                                  |
 #|                                                                                         |
 #+-----------------------------------------------------------------------------------------+
+
 
 
 # GLOBAL VARIABLES
@@ -31,6 +37,8 @@ orig_mac=$(ip link show "$iface" | grep ether | awk '{print $2}')
 # Get real IP & country before Nipe
 real_ip=$(curl -s http://ip-api.com/json | python3 -c "import sys, json; print(json.load(sys.stdin)['query'])")
 real_country=$(curl -s http://ip-api.com/json | python3 -c "import sys, json; print(json.load(sys.stdin)['country'])")
+
+
 
 # SPINNER FUNCTION
 # This function displays a spinner animation while a process is running.
@@ -51,7 +59,8 @@ SPINNER() {
     done
 
     # Clear spinner line after process ends
-    printf "\r%-60s\r" ""
+    printf "\r%-60s\r\n" ""
+    echo ""
 }
 
 
@@ -67,8 +76,8 @@ START() {
     fi
 
     timestamp=$(date +"%d%m%H%M%S")      # Save timestamp for session
-    figlet "PENETRATION TESTING"         # Display banner
-    echo -e "\nOleksandr Shevchuk S21, TMagen773637, Erel Regev\n"
+    figlet "DOMAIN MAPPER"         # Display banner
+    echo -e "\nOleksandr Shevchuk S21, TMagen773637\n"
 
     # Show current working directory
     echo -e "\e[30m\e[107mCurrent working directory: $current_dir\e[0m\n"
@@ -104,11 +113,6 @@ CHECK_INTERNET_CONNECTION() {
         apt update > /dev/null 2>&1 &
         SPINNER $!
         wait $!
-
-        # Download usernames and passwords lists to local directory
-        wget --no-check-certificate -O "$data/usernames.lst" "https://drive.google.com/uc?export=download&id=1mPSHpfd-P35FNv4r4nQVxfJmAesVLER_" >/dev/null 2>&1
-        wget --no-check-certificate -O "$data/passwords.lst" "https://drive.google.com/uc?export=download&id=1dCdCBwTg15ZeUmTyZ7YyU7oxb3mccGAu" >/dev/null 2>&1
-
         # Proceed to check and install utilities
         CHECK_APP
     else
@@ -126,7 +130,7 @@ CHECK_INTERNET_CONNECTION() {
 # If a utility is missing, it attempts to install it using 'apt'.
 CHECK_APP() {
     # List of utilities to check (excluding aria2c, handled separately)
-    local utilities_for_check="curl ftp hydra nmap perl rdesktop ssh sshpass telnet tor tree xsltproc macchanger fping zip"
+    local utilities_for_check="curl ftp hydra nmap rdesktop ssh sshpass telnet tor macchanger fping zip enscript"
     
     # Iterate through the list and verify each utility
     for i in $utilities_for_check; do
@@ -259,56 +263,57 @@ RUN_NIPE() {
 
 # SCAN SELECTION
 # Prompts the user for scan parameters, sets up the environment,
-# validates input, and starts either a basic or full scan.
+# validates input, and starts either a basic internediate or full scan.
 SELECT_SCAN_METOD() {
 
     cd "$current_dir"
 
     # Prompt the user to enter an IP address to scan
-    read -p $'\e[31m[!]\e[0m\e[34m Enter network address/mask (CIDR), e.g., 192.168.0.0/24: \e[0m' network
+    read -r -p $'\e[31m[!]\e[0m\e[34m Enter network address/mask (CIDR), e.g., 192.168.0.0/24: \e[0m' network
 
     if [[ ! "$network" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]]; then
         echo -e "\e[91m[!] Wrong format. Example: 192.168.0.0/24\e[0m\n"
         SELECT_SCAN_METOD    
     fi
 
+    local mode_name="scanning"
+    local level=""
     while true; do
         # Prompt the user to choose scan mode: Basic or Full
-        read -p $'\e[31m[?]\e[0m\e[34m Choose scan mode: [B]asic or [F]ull: \e[0m' scan_mode_raw
-        # Normalize scan mode to readable form
-        if [[ "$scan_mode_raw" =~ ^[Bb]$ ]]; then
-            scan_mode="Basic"
-            break
-        elif [[ "$scan_mode_raw" =~ ^[Ff]$ ]]; then
-            scan_mode="Full"
-            break
-        else
-            echo -e "\e[91m[!] Wrong choice. Example: B or F\e[0m"
-        fi
+        read -r -p $'\e[31m[?]\e[0m\e[34m Choose level for '"${mode_name}"$'\e[0m: [B]asic, [I]ntermediate, [A]dvanced: ' user_input       
+        case "${user_input^^}" in
+            B) level="Basic_$mode_name"; break;;
+            I) level="Intermediate_$mode_name"; break;;
+            A) level="Advanced_$mode_name"; break;;
+            *) echo -e "\e[91m[!] Wrong choice. Use B, I, or A\e[0m";;
+        esac
     done
     
     # Prompt the user to enter a folder name where scan results will be stored
-    read -p $'\e[31m[!]\e[0m\e[34m Enter folder name for scan results: \e[0m' working_dir
+    read -r -p $'\e[31m[!]\e[0m\e[34m Enter folder name for scan results: \e[0m' working_dir
 
     # Show summary and ask for confirmation
     echo -e "\n\e[31m[*]\e[0m\e[32m Please verify the entered data:\e[0m"
     echo ""
     echo -e "    Target network : $network"
-    echo -e "    Scan mode      : $scan_mode"
+    echo -e "    Scan mode      : $level"
     echo -e "    Output folder  : $working_dir"
 
     while true; do
-        read -p $'\n\e[31m[?]\e[0m\e[34m Is everything correct? (Y/N): \e[0m' validation
+        read -r -p $'\n\e[31m[?]\e[0m\e[34m Is everything correct? (Y/N): \e[0m' validation
         if [[ "$validation" =~ ^[Yy]$ ]]; then
             # Create output directory if it doesn't exist
             mkdir -p "$working_dir" > /dev/null 2>&1
 
             # Use fping to find live hosts in the target network and save IPs to live_hosts.txt
+            echo -e "\n\e[31m[!]\e[0m\e[32m Searching for live hosts...\e[0m"
             fping -a -g "$network" 2>/dev/null | awk '{print $1}' | grep -v $(hostname -I | awk '{print $1}') > "$working_dir/live_hosts.txt"
 
             # Run the selected scan
-            if [[ "$scan_mode" == "Basic" ]]; then
+            if [[ "$level" == "Basic_$mode_name" ]]; then
                 BASIC_SCAN
+            elif [[ "$level" == "Intermediate_$mode_name" ]]; then
+                INTERMEDIATE_SCAN
             else
                 FULL_SCAN
             fi
@@ -327,295 +332,285 @@ SELECT_SCAN_METOD() {
 
 
 # BASIC_SCAN
-# Runs a basic scan: TCP, version detection, and basic brute-force.
-BASIC_SCAN()
-{
-    # Print starting message with color formatting
+# Performs a basic TCP scan on live hosts with service/version detection.
+# Saves the results in TXT and converts to PDF for easy viewing.
+BASIC_SCAN() {
     echo -e "\n\e[31m[!]\e[0m\e[32m Starting BASIC scan...\e[0m"
 
-    # Loop over each live IP address found
     for ip in $(cat "$working_dir/live_hosts.txt"); do
-        # Inform user which IP is currently being scanned
         echo -e "\e[31m[*]\e[0m\e[32m Scanning: ${ip}\e[0m"
 
-        # Create a separate directory for each IP to store its scan results
         host_dir="$working_dir/${ip}"
         mkdir -p "$host_dir"
 
-        # Run nmap scan with service/version detection and OS detection, output XML to the IP directory
-        nmap -Pn -sS -sV ${ip} -oX "$host_dir/res_tcp_${ip}.xml" -oN "$host_dir/res_tcp_${ip}.txt" > /dev/null 2>&1 &
+        scan_result_txt="$host_dir/basic_scan_${ip}.txt"
+
+        # Write header with a single newline
+        echo -e "BASIC SCANNING RESULT FOR ${ip}\n" >> "$scan_result_txt" 2>/dev/null
+
+        # Run TCP scan
+        nmap -Pn ${ip} | grep -E 'Nmap scan report|^PORT|/tcp|open' >> "$scan_result_txt" 2>/dev/null &
         SPINNER $!
 
-        # Convert the XML output to a human-readable HTML report in the same directory
-        xsltproc "$host_dir/res_tcp_${ip}.xml" -o "$host_dir/res_tcp_${ip}.html"
+        # Convert TXT results to PDF
+        pdf_file="$host_dir/basic_scan_${ip}.pdf"
+        (enscript -B -f Courier10 -p - "$scan_result_txt" | ps2pdf - "$pdf_file") > /dev/null 2>&1
     done
 
-    CONFIGURE_WORDLISTS
+    ENUMERATION_MODE_SELECTOR
 }
 
 
+# INTERMEDIATE_SCAN
+# Performs a more thorough TCP scan on all 65535 ports of live hosts.
+# Includes version detection and vulnerability scripts. Results saved in TXT->PDF.
+INTERMEDIATE_SCAN() {
+    echo -e "\n\e[31m[!]\e[0m\e[32m Starting INTERMEDIATE scan...\e[0m"
 
-# FULL SCAN
-# Performs a complete scan for each host in live_hosts.txt
+    for ip in $(cat "$working_dir/live_hosts.txt"); do
+        echo -e "\e[31m[*]\e[0m\e[32m Scanning: ${ip}\e[0m"
+
+        host_dir="$working_dir/${ip}"
+        mkdir -p "$host_dir"
+
+        scan_result_txt="$host_dir/intermediate_scan_${ip}.txt"
+
+        # Write header with a single newline
+        echo -e "INTERMEDIATE SCANNING RESULT FOR ${ip}\n" >> "$scan_result_txt" 2>/dev/null
+
+        # Run TCP scan on all ports
+        nmap -Pn -p- ${ip} | grep -E 'Nmap scan report|^PORT|/tcp|open' >> "$scan_result_txt" 2>/dev/null &
+        SPINNER $!
+
+        # Convert TXT results to PDF
+        pdf_file="$host_dir/intermediate_scan_${ip}.pdf"
+        (enscript -B -f Courier10 -p - "$scan_result_txt" | ps2pdf - "$pdf_file") > /dev/null 2>&1
+    done
+
+    ENUMERATION_MODE_SELECTOR
+}
+
+
+# FULL_SCAN
+# Performs the most comprehensive scan: TCP SYN scan on all ports with OS detection,
+# plus UDP scan on top 20 ports. Uses vulnerability scripts and saves results in TXT->PDF.
 FULL_SCAN() {
-
-    # Print starting message in colored format
     echo -e "\n\e[31m[!]\e[0m\e[32m Starting FULL scan...\e[0m"
 
-    # Loop over each live IP address found
     for ip in $(cat "$working_dir/live_hosts.txt"); do
-        # Inform user which IP is currently being scanned
         echo -e "\e[31m[*]\e[0m\e[32m Scanning: ${ip}\e[0m"
 
-        # Create a separate directory for each IP to store its scan results
         host_dir="$working_dir/${ip}"
         mkdir -p "$host_dir"
 
-        # TCP scan: service/version detection, OS detection
-        nmap -Pn -sC -sV -O "${ip}" -oX "$host_dir/res_tcp_${ip}.xml" -oN "$host_dir/res_tcp_${ip}.txt" > /dev/null 2>&1 &
+        scan_result_txt="$host_dir/full_scan_${ip}.txt"
+
+        # Write header with a single newline
+        echo -e "FULL SCANNING RESULT FOR ${ip}\n" >>"$scan_result_txt" 2>/dev/null
+
+        # Run TCP scan on all ports
+        nmap -Pn -p- ${ip} | grep -E 'Nmap scan report|^PORT|/tcp' >> "$scan_result_txt" 2>/dev/null &
         SPINNER $!
-        wait $!
 
-        # UDP scan: top 10 ports, service detection
-        nmap -Pn -sU --top-ports 10 -sV "${ip}" -oX "$host_dir/res_udp_${ip}.xml" -oN "$host_dir/res_udp_${ip}.txt" > /dev/null 2>&1 &
+        # UDP scan: top 20 ports + vuln scripts
+        nmap -Pn -sU --top-ports 20 ${ip} | grep -E 'Nmap scan report|^PORT|/udp' >> "$scan_result_txt" 2>/dev/null &
         SPINNER $!
-        wait $!
 
-        # Convert XML reports into readable HTML
-        xsltproc "$host_dir/res_tcp_${ip}.xml" -o "$host_dir/res_tcp_${ip}.html"
-        xsltproc "$host_dir/res_udp_${ip}.xml" -o "$host_dir/res_udp_${ip}.html"
-
-        # Pass the current host IP ($i) to the MAPPING function
-        MAPPING "${ip}"
+        # Convert TXT results to PDF
+        pdf_file="$host_dir/full_scan_${ip}.pdf"
+        (enscript -B -f Courier10 -p - "$scan_result_txt" | ps2pdf - "$pdf_file") > /dev/null 2>&1
     done
 
-    CONFIGURE_WORDLISTS
+  ENUMERATION_MODE_SELECTOR
 }
 
 
-# MAPPING
-# Processes scan results, extracts open services, and runs vulnerability scan
-MAPPING() {
+# ENUMERATION_MODE_SELECTOR
+# Prompts the user to select an enumeration level: Basic, Intermediate, or Advanced.
+# Depending on the choice, it calls the corresponding enumeration function (BASIC, INTERMEDIATE, or FULL).
+ENUMERATION_MODE_SELECTOR() {
 
-    # Receive the IP argument passed from FULL_SCAN
-    local host="$1"
-    local host_dir="$working_dir/$host"
-
-    echo -e "\e[33m[>>] Mapping for: $host\e[0m"
-
-    # Extract all open TCP ports from the scan report
-    ports=$(awk '/open/{print $1}' "$host_dir/res_tcp_${host}.txt" \
-        | cut -d'/' -f1 | sort -n | tr '\n' ',' | sed 's/,$//')
-
-    # If open ports exist, run nmap vulnerability scripts
-    if [ -n "$ports" ]; then
-        nmap -p"$ports" --script vuln "$host" -oX "$host_dir/mapping_tcp_${host}.xml" -oN "$host_dir/mapping_tcp_${host}.txt" > /dev/null 2>&1 &
-        SPINNER $!
-        wait $!
-
-        # Convert XML report to HTML for easier reading
-        xsltproc "$host_dir/mapping_tcp_${host}.xml" -o "$host_dir/mapping_tcp_${host}.html" > /dev/null 2>&1
-
-        # Check if at least one CVE or vulnerability is found
-        if grep -q "CVE-" "$host_dir/mapping_tcp_${host}.xml"; then
-            echo -e "\e[32m[+] Vulnerable services found on $host (see: $host_dir/mapping_tcp_${host}.html)\e[0m"
-        else
-            echo -e "\e[90m[-] No vulnerabilities detected on $host\e[0m"
-            rm -f "$host_dir/mapping_tcp_${host}.xml" "$host_dir/mapping_tcp_${host}.html"
-        fi
-    else
-        # No open ports, skip vulnerability scan
-        echo -e "\e[33m[!] No open ports found for $host, skipping vuln scan\e[0m"
-    fi
-}
-
-
-
-# CONFIGURE_WORDLISTS
-# Downloads or sets up required wordlists for brute-force operations.
-CONFIGURE_WORDLISTS() { 
     while true; do
-        # Prompt the user to choose between standard or custom password list
-        read -p $'\n\e[31m[?]\e[0m\e[34m Choose password list: [S]tandard or [C]ustom: \e[0m' passwd_lst_raw
-        if [[ "$passwd_lst_raw" =~ ^[Ss]$ ]]; then
-            passwd_lst="$data/passwords.lst"
+        # Ask the user to choose the scan level with colored prompt
+        read -r -p $'\e[31m[?]\e[0m\e[34m Choose level for enumeration: [B]asic, [I]ntermediate, [A]dvanced: \e[0m' user_choice
+
+        # Run the corresponding enumeration function based on user choice
+        if [[ "$user_choice" =~ ^[Bb]$ ]]; then
+            echo -e "\n\e[31m[!]\e[0m\e[32m Starting BASIC ENUMERATION...\e[0m"
+
+            (
+                BASIC_ENUMERATION
+
+                # Convert the *.txt into a PDF
+                for txt_file in "$host_dir"/enumeration_*.txt; do
+                pdf_file="${txt_file%.txt}.pdf"
+                (enscript -B -f Courier10 -p - "$txt_file" | ps2pdf - "$pdf_file") > /dev/null 2>&1
+                done
+            ) &
+            SPINNER $!
             break
-        elif [[ "$passwd_lst_raw" =~ ^[Cc]$ ]]; then
-            # Ask user to provide full path to their custom password list
-            read -p $'\e[31m[!]\e[0m\e[34m Enter the full path to your custom password list: \e[0m' custom_passwd_lst
-            echo ""
-            passwd_lst="$custom_passwd_lst"
+
+        elif [[ "$user_choice" =~ ^[Ii]$ ]]; then
+            echo -e "\n\e[31m[!]\e[0m\e[32m Starting INTERMEDIATE ENUMERATION...\e[0m"
+
+            (
+                BASIC_ENUMERATION
+                INTERMEDIATE_ENUMERATION
+
+                # Convert the *.txt into a PDF
+                for txt_file in "$host_dir"/enumeration_*.txt; do
+                    pdf_file="${txt_file%.txt}.pdf"
+                    (enscript -B -f Courier10 -p - "$txt_file" | ps2pdf - "$pdf_file") > /dev/null 2>&1
+                done
+            ) &
+            SPINNER $!
             break
-        else
-            echo -e "\e[91m[!] Wrong choice. Example: S or C\e[0m"
-        fi
-    done
 
-    # Check that both username and password lists exist; if not, exit with error
-    if [[ ! -f "$data/usernames.lst" || ! -f "$passwd_lst" ]]; then
-        echo -e "\e[91m[!] Required wordlists not found. Exiting.\e[0m"
-        exit 1
-    fi
+        elif
+            [[ "$user_choice" =~ ^[Aa]$ ]]; then
 
-    # Proceed to the brute-force credential scanning function
-    WEAK_CREDENTIALS
-}
+            echo -e "\n\e[31m============================================================"
+            echo -e "   ⚠️  ATTENTION: Advanced Enumeration Requirements  ⚠️"
+            echo -e "============================================================"
+            echo -e " Userlist AND Password List are REQUIRED."
+            echo -e " - If no custom password list is provided, rockyou.txt will be used."
+            echo -e " - If no custom userlist is provided, default userlist will be used."
+            echo -e "============================================================\e[0m\n"
 
+            
+            # Prompt the user to enter the full path to a  userlist
+            read -r -p $'\e[34m[?]\e[0m Enter full path to userlist or press enter for default userlist: ' custom_userlist
 
-
-# WEAK_CREDENTIALS
-# Attempts to discover weak credentials on open services using Nmap scripts and Hydra.
-# SSH, FTP, and Telnet are scanned using Nmap scripts.
-# RDP is scanned using Hydra because Nmap lacks RDP brute-force support.
-WEAK_CREDENTIALS() {
-    # Iterate over each IP address from the list of live hosts
-    for ip in $(cat "$working_dir/live_hosts.txt"); do
-        host_dir="$working_dir/$ip"
-        tcp_file="$host_dir/res_tcp_${ip}.txt"
-
-        echo -e "\e[31m[*]\e[0m\e[32m Searching for weak passwords on $ip...\e[0m"
-
-        # Extract only open services that are relevant for brute force testing
-        # Supported protocols: ftp, ssh, telnet, rdp
-        grep -i "open" "$tcp_file" | grep -iE "\b(ftp|ssh|telnet|rdp)\b" | awk '{print $3}' | sort -u > "$host_dir/protocol_for_scan.txt"
-
-        # Common script arguments for nmap brute-force scripts
-        script_args="userdb=$data/usernames.lst,passdb=$passwd_lst,brute.threads=10"
-
-        # Process each detected protocol individually
-        for protocol in $(cat "$host_dir/protocol_for_scan.txt"); do
-            echo -e "\e[33m[>>] Trying $protocol on $ip...\e[0m"
-
-            if [[ "$protocol" == "ftp" ]]; then
-                # Run FTP brute-force attack using nmap
-                nmap -p 21 "$ip" --script ftp-brute --script-args "$script_args" -oN "$host_dir/nmap_ftp_brute_${ip}.txt" > /dev/null 2>&1 &
-                SPINNER $!
-                wait $!
-                
-                # Check if valid credentials were found without printing them
-                if grep -q "Valid credentials" "$host_dir/nmap_ftp_brute_${ip}.txt"; then
-                    echo -e "\e[32m[+] Weak FTP credentials found for $ip (see: $host_dir/nmap_ftp_brute_${ip}.txt)\e[0m"
-                else
-                    echo -e "\e[90m[-] No valid FTP credentials for $ip\e[0m"
-                    rm -f "$host_dir/nmap_ftp_brute_${ip}.txt"
-                fi
-
-            elif [[ "$protocol" == "ssh" ]]; then
-                # Run SSH brute-force attack using nmap
-                nmap -p 22 "$ip" --script ssh-brute --script-args "$script_args" -oN "$host_dir/nmap_ssh_brute_${ip}.txt" > /dev/null 2>&1 &
-                SPINNER $!
-                wait $!
-
-                if grep -q "Valid credentials" "$host_dir/nmap_ssh_brute_${ip}.txt"; then
-                    echo -e "\e[32m[+] Weak SSH credentials found for $ip (see: $host_dir/nmap_ssh_brute_${ip}.txt)\e[0m"
-                else
-                    echo -e "\e[90m[-] No valid SSH credentials for $ip\e[0m"
-                    rm -f "$host_dir/nmap_ssh_brute_${ip}.txt"
-                fi
-
-            elif [[ "$protocol" == "telnet" ]]; then
-                # Run Telnet brute-force attack using nmap
-                nmap -p 23 "$ip" --script telnet-brute --script-args "$script_args" -oN "$host_dir/nmap_telnet_brute_${ip}.txt" > /dev/null 2>&1 &
-                SPINNER $!
-                wait $!
-
-                if grep -q "Valid credentials" "$host_dir/nmap_telnet_brute_${ip}.txt"; then
-                    echo -e "\e[32m[+] Weak Telnet credentials found for $ip (see: $host_dir/nmap_telnet_brute_${ip}.txt)\e[0m"
-                else
-                    echo -e "\e[90m[-] No valid Telnet credentials for $ip\e[0m"
-                    rm -f "$host_dir/nmap_telnet_brute_${ip}.txt"
-                fi
-
-            elif [[ "$protocol" == "rdp" ]]; then
-                # Run RDP brute-force attack using Hydra (nmap does not support RDP brute)
-                hydra -L "$data/usernames.lst" -P "$passwd_lst" -t 8 -o "$host_dir/hydra_rdp_${ip}.txt" rdp://$ip >/dev/null 2>&1 &
-                SPINNER $!
-                wait $!
-
-                if grep -qE "login:|password:|\[SUCCESS\]" "$host_dir/hydra_rdp_${ip}.txt"; then
-                    echo -e "\e[32m[+] Weak RDP credentials found for $ip (see: $host_dir/hydra_rdp_${ip}.txt)\e[0m"
-                else
-                    echo -e "\e[90m[-] No valid RDP credentials for $ip\e[0m"
-                    rm -f "$host_dir/hydra_rdp_${ip}.txt"
-                fi
+            # If no custom userlist is provided, use the default userlist from GoogleDrive
+            if [[ -z "$custom_userlist" ]]; then
+                data="$working_dir/world_lists"
+                mkdir -p "$data"
+                wget --no-check-certificate -O "$data/users.txt" "https://drive.google.com/uc?export=download&id=1FK4Ei5ovLw8g8gPOryoqdXBOAf1TEMCq" >/dev/null 2>&1
+                userlist="$data/users.txt"
+            else
+                # Otherwise, use the path provided by the user
+                userlist="$custom_userlist"
             fi
-        done
+            
+            # Prompt the user to enter the full path to a password list
+            read -r -p $'\e[34m[?]\e[0m Enter full path to passwordlist or press enter for default passwordlist: ' custom_passwdlist
+
+            # If no custom password list is provided, use the default rockyou.txt
+            if [[ -z "$custom_passwdlist" ]]; then
+                passwdlist="/usr/share/wordlists/rockyou.txt"
+            else
+                # Otherwise, use the path provided by the user
+                passwdlist="$custom_passwdlist"
+            fi
+            
+            # Inform the user that Advanced Enumeration is starting
+            echo -e "\n\e[31m[!]\e[0m\e[32m Starting ADVANCE ENUMERATION...\e[0m"
+
+            (
+                BASIC_ENUMERATION
+                INTERMEDIATE_ENUMERATION
+                ADVANCED_ENUMERATION
+            
+             # Convert the *.txt into a PDF
+            for txt_file in "$host_dir"/enumeration_*.txt; do
+                pdf_file="${txt_file%.txt}.pdf"
+                (enscript -B -f Courier10 -p - "$txt_file" | ps2pdf - "$pdf_file") > /dev/null 2>&1
+            done
+            ) &
+            SPINNER $!
+            break
+        else
+            echo -e "\e[91m[!] Wrong choice. Example: B, I or A\e[0m"
+
+        fi
     done
-    FINAL_REPORT
+
+    STOP
 }
 
 
+# BASIC_ENUMERATION
+# Performs basic host enumeration: scans TCP and UDP ports from previous scan results,
+# detects Domain Controllers and DHCP servers, logs findings to TXT, and converts logs to PDF.
+BASIC_ENUMERATION() {
 
-# FINAL_REPORT
-# Displays scan completion, shows the directory structure of results
-FINAL_REPORT() {
-    echo -e "\n\e[31m[!]\e[0m\e[32m Scan completed.\e[0m"
-
-    # Show working directory tree structure with all collected data
-    echo -e "\e[31m[!]\e[0m\e[32m Directory structure and scan results:\e[0m\n"
-    tree "$working_dir"
-
-    SEARCH_RESULTS
-}
-
-
-# SEARCH_RESULTS
-# Opens an interactive shell inside the scan results folder for post-scan searching and data processing.
-# The shell is spawned inside this function, and the user must type 'exit' to return to the main program.
-SEARCH_RESULTS() {
-    while true; do
-        # Ask the user if they want to open a console in the results folder
-        read -p $'\n\e[31m[?]\e[0m\e[34m Do you want to check or perform manipulations on the scan results? (Y/N): \e[0m' choice
+    for ip in $(cat "$working_dir/live_hosts.txt"); do
+        echo -e "\e[31m[*]\e[0m\e[32m Enumeration: ${ip}\e[0m"
         
-        if [[ "$choice" =~ ^[Yy]$ ]]; then
-            echo -e "\e[32m[!] Opening a shell in '$working_dir'.\e[0m"
-            
-            # Change directory to the working folder
-            cd "$working_dir"
-            
-            # Start a temporary interactive shell with a custom intro message
-            bash --rcfile <(echo "echo -e '\e[33m[!] This shell is opened inside the SEARCH_RESULTS function for search and post-scan result processing.\e[0m';
-                                   echo -e '\e[33m[!] When finished, type exit and press Enter to return to the main program.\e[0m'\n")
-            
-            # Return to the previous directory after shell is closed
-            cd - > /dev/null
-            break
-        elif [[ "$choice" =~ ^[Nn]$ ]]; then
-            # Exit the loop if the user chooses No
-            break
-        else
-            echo -e "\e[91m[!] Wrong choice. Example: Y or N\e[0m"
+        # Define TXT file for this host
+        enumeration_result_txt="$host_dir/enumeration_${ip}.txt"
+
+        # Write header
+        echo -e "\n BASIC ENUMERATION RESULT FOR ${ip}\n" >> "$enumeration_result_txt" 2>/dev/null
+
+        # TCP enumeration
+        if [ "$(grep -c '/tcp' "$scan_result_txt")" -gt 0 ]; then
+            tcp_ports=$(grep '/tcp' "$scan_result_txt" | awk -F'/' '{print $1}' | paste -sd, -)
+            nmap -Pn -sV -p "$tcp_ports" ${ip} | grep -E '^PORT|/tcp|open' >>  "$enumeration_result_txt" 2>/dev/null
+        fi
+
+        # UDP enumeration
+        if [ "$(grep -c '/udp' "$scan_result_txt")" -gt 0 ]; then
+            udp_ports=$(grep '/udp' "$scan_result_txt" | awk -F'/' '{print $1}' | paste -sd, -)
+            nmap -Pn -sV -p "$udp_ports" ${ip} | grep -E '^PORT|/tcp|open' >>  "$enumeration_result_txt" 2>/dev/null
+        fi
+
+        # Domain Controller detection
+        if grep -q "ldap.*Active Directory" "$enumeration_result_txt" \
+            && grep -q "88/tcp" "$enumeration_result_txt" \
+            && grep -q "3268/tcp" "$enumeration_result_txt"; then
+
+            msg="[+] DOMAIN CONTROLLER DETECTED ${ip}"
+            echo -e "\n$msg" >> "$enumeration_result_txt" 2>/dev/null
+            echo -e "\e[33m$msg\e[0m"
+        fi
+
+        
+         # Automatically determine the active network interface
+        interface=$(ip -o -4 addr show up | awk '!/lo/ {print $2; exit}')
+        
+        # DHCP server detection
+        dhcp_output=$(nmap -e "$interface" --script broadcast-dhcp-discover 2>/dev/null)
+
+        # Check if a DHCP server was found and log it
+        if echo "$dhcp_output" | grep -q "Server Identifier:"; then
+            dhcp_ip=$(echo "$dhcp_output" | grep "Server Identifier:" | awk -F ':' '{print $NF}' | tr -d ' ')
+            msg="[+] DHCP SERVER DETECTED ${dhcp_ip}"
+            echo -e "\n$msg" >> "$enumeration_result_txt" 2>/dev/null
+            echo -e "\e[33m$msg\e[0m"
         fi
     done
-    
-    ZIP_RESULTS
 }
 
 
-# ZIP_RESULTS
-# Offers the user an option to archive all scan results into a ZIP file named after the working directory.
-# Provides a confirmation message when the archive is created.
-ZIP_RESULTS() {
-    while true; do
-        # Ask user if they want to archive results
-        read -p $'\n\e[31m[?]\e[0m\e[34m Save all results into a ZIP file? (Y/N): \e[0m' zip_choice
-        if [[ "$zip_choice" =~ ^[Yy]$ ]]; then
-            # Define ZIP file name based on working directory
-            zip_file="${working_dir}.zip"
-            # Create ZIP archive recursively, suppress output
-            zip -r "$zip_file" "$working_dir" > /dev/null 2>&1
-            echo -e "\n\e[31m[+]\e[0m\e[32m Results saved to: $zip_file \e[0m"
 
-            break
-        elif [[ "$zip_choice" =~ ^[Nn]$ ]]; then
-            # Exit the ZIP loop if user chooses 'n'
-            break
-        else
-            echo -e "\e[91m[!] Wrong choice. Example: Y or N\e[0m"
-        fi
+# INTERMEDIATE_ENUMERATION
+# Performs intermediate host enumeration: expands on BASIC_ENUMERATION results for each live host.
+# This function appends results to the TXT file already created in BASIC_ENUMERATION.
+INTERMEDIATE_ENUMERATION() {
+
+    for ip in $(cat "$working_dir/live_hosts.txt"); do
+        echo -e "\e[31m[*]\e[0m\e[32m Enumeration: ${ip}\e[0m"
+
+        # Define TXT file for this host
+        enumeration_result_txt="$host_dir/enumeration_${ip}.txt"
+                
+        # Write header
+        echo -e "\n INTERMEDIATE ENUMERATION RESULT FOR ${ip}\n" >> "$enumeration_result_txt" 2>/dev/null
+
+        # Define ports for intermediate scanning
+        ports=21,22,139,445,389,636,3389,5985,5986
+
+        # Run Nmap scripts:
+        #   - vuln: check common vulnerabilities
+        #   - smb-os-discovery: detect SMB server OS
+        #   - smb-enum-shares: enumerate SMB shares
+        #   - smb-enum-users: enumerate SMB users
+        nmap -Pn -sV -p "$ports" --script vuln,smb-os-discovery,smb-enum-shares,smb-enum-users "${ip}" | awk 'NR > 3'>> "$enumeration_result_txt" 2>/dev/null
     done
-    exit
 }
+
+
 
 
 # STOP - Stops the Nipe service, restores original IP and MAC address, and cleans up.
