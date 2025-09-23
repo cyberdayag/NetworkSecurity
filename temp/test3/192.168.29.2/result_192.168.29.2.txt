@@ -1,0 +1,51 @@
+FULL SCANNING RESULT FOR 192.168.29.2
+
+Nmap scan report for 192.168.29.2
+PORT   STATE SERVICE
+53/tcp open  domain
+Nmap scan report for 192.168.29.2
+PORT      STATE         SERVICE
+53/udp    open          domain
+67/udp    open|filtered dhcps
+68/udp    open|filtered dhcpc
+69/udp    open|filtered tftp
+123/udp   open|filtered ntp
+135/udp   open|filtered msrpc
+137/udp   open|filtered netbios-ns
+138/udp   open|filtered netbios-dgm
+139/udp   open|filtered netbios-ssn
+161/udp   open|filtered snmp
+162/udp   open|filtered snmptrap
+445/udp   open|filtered microsoft-ds
+500/udp   open|filtered isakmp
+514/udp   open|filtered syslog
+520/udp   open|filtered route
+631/udp   open|filtered ipp
+1434/udp  open|filtered ms-sql-m
+1900/udp  open|filtered upnp
+4500/udp  open|filtered nat-t-ike
+49152/udp open|filtered unknown
+
+BASIC ENUMERATION RESULT FOR 192.168.29.2
+
+PORT      STATE  SERVICE      VERSION
+53/tcp    open   domain       (generic dns response: NXDOMAIN)
+67/tcp    closed dhcps
+68/tcp    closed dhcpc
+69/tcp    closed tftp
+123/tcp   closed ntp
+135/tcp   closed msrpc
+137/tcp   closed netbios-ns
+138/tcp   closed netbios-dgm
+139/tcp   closed netbios-ssn
+161/tcp   closed snmp
+162/tcp   closed snmptrap
+445/tcp   closed microsoft-ds
+500/tcp   closed isakmp
+514/tcp   closed shell
+520/tcp   closed efs
+631/tcp   closed ipp
+1434/tcp  closed ms-sql-m
+1900/tcp  closed upnp
+4500/tcp  closed sae-urn
+49152/tcp closed unknown

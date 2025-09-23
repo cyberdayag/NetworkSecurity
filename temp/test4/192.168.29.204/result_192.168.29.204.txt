@@ -33,7 +33,7 @@ PORT      STATE  SERVICE       VERSION
 21/tcp    closed ftp
 22/tcp    closed ssh
 53/tcp    open   domain        Simple DNS Plus
-88/tcp    open   kerberos-sec  Microsoft Windows Kerberos (server time: 2025-09-23 21:32:42Z)
+88/tcp    open   kerberos-sec  Microsoft Windows Kerberos (server time: 2025-09-23 22:37:40Z)
 135/tcp   open   msrpc         Microsoft Windows RPC
 139/tcp   open   netbios-ssn   Microsoft Windows netbios-ssn
 389/tcp   open   ldap          Microsoft Windows Active Directory LDAP (Domain: netsec.local, Site: Default-First-Site-Name)
@@ -74,14 +74,6 @@ MAC Address: 00:0C:29:04:06:BE (VMware)
 Service Info: Host: WIN-A8PBA9GL4GE; OS: Windows; CPE: cpe:/o:microsoft:windows
 
 Host script results:
-| smb-os-discovery: 
-|   OS: Windows Server 2016 Standard 14393 (Windows Server 2016 Standard 6.3)
-|   Computer name: WIN-A8PBA9GL4GE
-|   NetBIOS computer name: WIN-A8PBA9GL4GE\x00
-|   Domain name: netsec.local
-|   Forest name: netsec.local
-|   FQDN: WIN-A8PBA9GL4GE.netsec.local
-|_  System time: 2025-09-23T14:33:37-07:00
 | smb-enum-shares: 
 |   note: ERROR: Enumerating shares failed, guessing at common ones (NT_STATUS_ACCESS_DENIED)
 |   account_used: <blank>
@@ -97,6 +89,14 @@ Host script results:
 |   \\192.168.29.204\NETLOGON: 
 |     warning: Couldn't get details for share: NT_STATUS_ACCESS_DENIED
 |_    Anonymous access: <none>
+| smb-os-discovery: 
+|   OS: Windows Server 2016 Standard 14393 (Windows Server 2016 Standard 6.3)
+|   Computer name: WIN-A8PBA9GL4GE
+|   NetBIOS computer name: WIN-A8PBA9GL4GE\x00
+|   Domain name: netsec.local
+|   Forest name: netsec.local
+|   FQDN: WIN-A8PBA9GL4GE.netsec.local
+|_  System time: 2025-09-23T15:38:35-07:00
 | nbstat: NetBIOS name: WIN-A8PBA9GL4GE, NetBIOS user: <unknown>, NetBIOS MAC: 00:0c:29:04:06:be (VMware)
 | Names:
 |   WIN-A8PBA9GL4GE<00>  Flags: <unique><active>
@@ -106,7 +106,7 @@ Host script results:
 |_  NETSEC<1b>           Flags: <unique><active>
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap done: 1 IP address (1 host up) scanned in 7.54 seconds
+# Nmap done at Tue Sep 23 18:38:38 2025 -- 1 IP address (1 host up) scanned in 7.34 seconds
 
 [+] DOMAIN CONTROLLER DETECTED 192.168.29.204
 
